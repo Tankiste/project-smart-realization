@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:smart_home/view/home.dart';
 import 'package:smart_home/view/registration.dart';
 
 class LoginPage extends StatefulWidget {
@@ -144,11 +145,14 @@ class _LoginPageState extends State<LoginPage> {
                 height: ht * 0.26,
               ),
               ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: ((context) => HomePage())));
+                  },
                   style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFFFFCA99),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       )),
                   child: Padding(
                       padding: EdgeInsets.only(
