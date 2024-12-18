@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_home/model/add_user.dart';
 import 'package:smart_home/view/login.dart';
 
 class HomePage extends StatefulWidget {
@@ -83,7 +84,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               SizedBox(
-                height: ht * 0.027,
+                height: ht * 0.026,
               ),
               Text(
                 _equipments[index]['label'],
@@ -93,7 +94,7 @@ class _HomePageState extends State<HomePage> {
                     fontSize: 18),
               ),
               SizedBox(
-                height: ht * 0.03,
+                height: ht * 0.02,
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -114,7 +115,7 @@ class _HomePageState extends State<HomePage> {
                         },
                       );
                     },
-                    activeColor: Color(0xFF6EFFBD),
+                    activeColor: Color(0xFFFFEBDC),
                   )
                 ],
               )
@@ -190,7 +191,7 @@ class _HomePageState extends State<HomePage> {
                 Switch(
                   value: bulbState,
                   onChanged: onSwitchChanged,
-                  activeColor: Color(0xFF6EFFBD),
+                  activeColor: Color(0xFFFFEBDC),
                 )
               ],
             )
@@ -356,7 +357,7 @@ class _HomePageState extends State<HomePage> {
                   height: ht * 0.58,
                   child: Expanded(child: _selectContentByIndex())),
               SizedBox(
-                height: ht * 0.04,
+                height: ht * 0.03,
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -366,7 +367,13 @@ class _HomePageState extends State<HomePage> {
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                   ),
                   TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AddUserForm();
+                            });
+                      },
                       child: Text('Add Users',
                           style: TextStyle(
                               color: Color(0xFFC4987D),
@@ -502,8 +509,8 @@ class _HomePageState extends State<HomePage> {
                       )),
                   child: Padding(
                       padding: EdgeInsets.only(
-                          left: wt * 0.34,
-                          right: wt * 0.34,
+                          left: wt * 0.32,
+                          right: wt * 0.32,
                           top: ht * 0.017,
                           bottom: ht * 0.017),
                       child: Text(
