@@ -9,6 +9,7 @@ class UserData {
   String? password;
   String? confirmpassword;
   String? house_password;
+  int? actual_temperature;
 
   UserData(
       {required this.uid,
@@ -18,7 +19,8 @@ class UserData {
       this.email,
       this.password,
       this.confirmpassword,
-      this.house_password});
+      this.house_password,
+      this.actual_temperature});
 
   Map<String, dynamic> toMap() {
     return {
@@ -28,6 +30,7 @@ class UserData {
       'fingerprint': fingerprint,
       'ideal temp.': ideal_temperature,
       'home password': password,
+      'actual temp.': actual_temperature
     };
   }
 
@@ -35,12 +38,12 @@ class UserData {
     var snapshot = snap.data() as Map<String, dynamic>;
 
     return UserData(
-      uid: snapshot['uid'],
-      name: snapshot['username'],
-      email: snapshot['email'],
-      fingerprint: snapshot['fingerprint'],
-      ideal_temperature: snapshot['ideal temp.'],
-      house_password: snapshot['house password'],
-    );
+        uid: snapshot['uid'],
+        name: snapshot['username'],
+        email: snapshot['email'],
+        fingerprint: snapshot['fingerprint'],
+        ideal_temperature: snapshot['ideal temp.'],
+        house_password: snapshot['house password'],
+        actual_temperature: snapshot['actual temp.']);
   }
 }

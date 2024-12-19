@@ -36,6 +36,7 @@ class AuthService {
 
         userData.house_password = password;
         userData.fingerprint = signature;
+        userData.actual_temperature = 0;
 
         await _services.users.doc(cred.user!.uid).set(userData.toMap());
 
@@ -47,6 +48,13 @@ class AuthService {
     return resp;
   }
 
+  Future<UserData> getUserDetails() async {
+    auth.User currentUser = _auth.currentUser!;
+    DocumentSnapshot snap =
+        await _firestore.collection('users').doc(currentUser.uid).get();
+    return UserData.fromSnap(snap);
+  }
+
   Future<String> loginUser({
     required String username,
     required String housePassword,
@@ -55,12 +63,12 @@ class AuthService {
     try {
       QuerySnapshot querySnapshot = await _firestore
           .collection('users')
-          .where('name', isEqualTo: username)
+          .where('username', isEqualTo: username)
           .get();
 
       if (querySnapshot.docs.isNotEmpty) {
         DocumentSnapshot userDoc = querySnapshot.docs.first;
-        String password = userDoc['house password'];
+        String password = userDoc['home password'];
 
         if (password == housePassword) {
           resp = 'success';
@@ -74,5 +82,15 @@ class AuthService {
       resp = e.toString();
     }
     return resp;
+  }
+
+  Future<List<DocumentSnapshot>> getUsers() async {
+    QuerySnapshot querySnapshot = await _services.users.get();
+
+    return querySnapshot.docs;
+  }
+
+  Future<void> logout() async {
+    await _auth.signOut();
   }
 }

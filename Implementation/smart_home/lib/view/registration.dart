@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:smart_home/model/auth/auth_service.dart';
 import 'package:smart_home/model/biometric_service.dart';
 import 'package:smart_home/view/login.dart';
 
@@ -20,6 +21,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
   TextEditingController _confirmpassController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscurePassword2 = true;
+  bool isLoading = false;
 
   void _togglePasswordVisibility() {
     setState(() {
@@ -48,8 +50,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
     bool authenticated = await _authService.authenticate();
     if (authenticated) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Successfully Registered')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fingerprint successfully registered')));
       Navigator.of(context).pop();
     } else {
       _showErrorDialog('Authentication failed.');
@@ -105,6 +107,39 @@ class _RegistrationPageState extends State<RegistrationPage> {
             ],
           );
         });
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmpassController.dispose();
+    _tempController.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  void registerMember() async {
+    if (_registerFormKey.currentState!.validate()) {
+      await _authenticate();
+      setState(() {
+        isLoading = true;
+      });
+      String resp = await AuthService().registerUser(
+          username: _nameController.text,
+          email: _emailController.text,
+          ideal_temperature: int.parse(_tempController.text),
+          password: _passwordController.text,
+          confirmpassword: _confirmpassController.text);
+      if (resp == 'success') {
+        Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+            (Route<dynamic> route) => false);
+      }
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   @override
@@ -382,7 +417,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   height: ht * 0.05,
                 ),
                 ElevatedButton(
-                    onPressed: () => _authenticate(),
+                    onPressed: () {
+                      isLoading ? null : registerMember();
+                    },
                     style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFFFFCA99),
                         shape: RoundedRectangleBorder(
@@ -394,13 +431,17 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             right: wt * 0.31,
                             top: ht * 0.017,
                             bottom: ht * 0.017),
-                        child: Text(
-                          'Sign Up',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                              fontSize: 18),
-                        ))),
+                        child: isLoading
+                            ? CircularProgressIndicator(
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white))
+                            : Text(
+                                'Sign Up',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                    fontSize: 18),
+                              ))),
                 SizedBox(
                   height: ht * 0.01,
                 ),

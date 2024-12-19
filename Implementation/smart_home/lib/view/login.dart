@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:smart_home/model/auth/auth_service.dart';
 import 'package:smart_home/view/home.dart';
 import 'package:smart_home/view/registration.dart';
 
@@ -15,11 +16,44 @@ class _LoginPageState extends State<LoginPage> {
   TextEditingController _nameController = TextEditingController();
   TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool isLoading = false;
 
   void _togglePasswordVisibility() {
     setState(() {
       _obscurePassword = !_obscurePassword;
     });
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void loginMember() async {
+    if (_loginFormKey.currentState!.validate()) {
+      setState(() {
+        isLoading = true;
+      });
+      String resp = await AuthService().loginUser(
+          username: _nameController.text,
+          housePassword: _passwordController.text);
+
+      if (resp == 'success') {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const HomePage()),
+          (Route<dynamic> route) => false,
+        );
+      } else if (resp != 'Please Enter All The Fields!') {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Incorrect credentials!'),
+        ));
+      }
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   @override
@@ -88,6 +122,13 @@ class _LoginPageState extends State<LoginPage> {
                               fontWeight: FontWeight.w300,
                               fontSize: 14),
                           border: InputBorder.none),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your name';
+                        }
+
+                        return null;
+                      },
                     ),
                   ),
                 ),
@@ -149,10 +190,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 ElevatedButton(
                     onPressed: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: ((context) => HomePage())));
+                      isLoading ? null : loginMember();
                     },
                     style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFFFFCA99),
@@ -165,13 +203,17 @@ class _LoginPageState extends State<LoginPage> {
                             right: wt * 0.34,
                             top: ht * 0.017,
                             bottom: ht * 0.017),
-                        child: Text(
-                          'Login',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                              fontSize: 18),
-                        ))),
+                        child: isLoading
+                            ? CircularProgressIndicator(
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white))
+                            : Text(
+                                'Login',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                    fontSize: 18),
+                              ))),
                 SizedBox(
                   height: ht * 0.01,
                 ),

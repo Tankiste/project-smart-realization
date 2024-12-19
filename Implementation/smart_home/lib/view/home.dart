@@ -1,5 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:smart_home/model/add_user.dart';
+import 'package:smart_home/model/auth/auth_service.dart';
+import 'package:smart_home/model/auth/user_data.dart';
+import 'package:smart_home/model/rooms/app_state.dart';
 import 'package:smart_home/view/login.dart';
 
 class HomePage extends StatefulWidget {
@@ -10,6 +15,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final AuthService _authService = AuthService();
   final List<Map<String, dynamic>> _containers = [
     {'icon': Icons.chair_outlined, 'label': 'Living room'},
     {'icon': Icons.kitchen_outlined, 'label': 'Kitchen'},
@@ -22,6 +28,7 @@ class _HomePageState extends State<HomePage> {
     {'icon': Icons.air_outlined, 'label': 'Air Conditionner'},
     {'icon': Icons.sunny_snowing, 'label': 'Heater'},
   ];
+  List<UserData> users = [];
 
   int _selectedRoom = 0;
 
@@ -37,6 +44,38 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _selectedRoom = index;
     });
+  }
+
+  @override
+  void initState() {
+    updateData();
+    fetchUsers();
+    super.initState();
+  }
+
+  updateData() async {
+    ApplicationState appState = Provider.of(context, listen: false);
+    await appState.refreshUser();
+  }
+
+  Future<void> fetchUsers() async {
+    try {
+      List<DocumentSnapshot> userDocs = await _authService.getUsers();
+      setState(() {
+        users = userDocs.map((doc) => UserData.fromSnap(doc)).toList();
+      });
+    } catch (e) {
+      print('Error fetching users: $e');
+    }
+  }
+
+  signoutUser() async {
+    ApplicationState appState = Provider.of(context, listen: false);
+    await appState.logoutUser(context);
+    await _authService.logout();
+    Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+        (Route<dynamic> route) => false);
   }
 
   Widget _firstIndexContent() {
@@ -232,6 +271,8 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     var ht = MediaQuery.of(context).size.height;
     var wt = MediaQuery.of(context).size.width;
+    UserData? userData = Provider.of<ApplicationState>(context).getUser;
+    String? name = userData?.name;
     return Scaffold(
       backgroundColor: Color(0xFFFFF8EC),
       body: SingleChildScrollView(
@@ -249,7 +290,7 @@ class _HomePageState extends State<HomePage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Hi Baptou!',
+                    'Hi $name!',
                     style: TextStyle(fontWeight: FontWeight.w900, fontSize: 30),
                   ),
                   Row(
@@ -457,39 +498,39 @@ class _HomePageState extends State<HomePage> {
                     Container(
                       height: ht * 0.2,
                       width: wt * 0.8,
-                      child: ListView.builder(
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          padding: EdgeInsets.zero,
-                          itemCount: 2,
-                          itemBuilder: (context, index) {
-                            final users = [
-                              {'name': 'User1', 'temperature': 26},
-                              {'name': 'User2', 'temperature': 32},
-                            ];
-
-                            return Padding(
-                              padding: EdgeInsets.symmetric(vertical: 10),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                children: [
-                                  Text(
-                                    users[index]['name'] as String,
-                                    style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 14),
+                      child: users.isEmpty
+                          ? Center(
+                              child: CircularProgressIndicator(),
+                            )
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              physics: NeverScrollableScrollPhysics(),
+                              padding: EdgeInsets.zero,
+                              itemCount: users.length,
+                              itemBuilder: (context, index) {
+                                final user = users[index];
+                                return Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 10),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceAround,
+                                    children: [
+                                      Text(
+                                        user.name,
+                                        style: TextStyle(
+                                            color: Colors.grey.shade600,
+                                            fontSize: 14),
+                                      ),
+                                      Text(
+                                        '${user.ideal_temperature}°C',
+                                        style: TextStyle(
+                                            color: Colors.grey.shade600,
+                                            fontSize: 14),
+                                      ),
+                                    ],
                                   ),
-                                  Text(
-                                    '${users[index]['temperature']}°C',
-                                    style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 14),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
+                                );
+                              }),
                     )
                   ],
                 ),
@@ -498,10 +539,7 @@ class _HomePageState extends State<HomePage> {
                 height: ht * 0.07,
               ),
               ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: ((context) => LoginPage())));
-                  },
+                  onPressed: signoutUser,
                   style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFFFFCA99),
                       shape: RoundedRectangleBorder(
