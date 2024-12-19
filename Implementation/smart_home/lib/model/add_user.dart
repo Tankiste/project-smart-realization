@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_home/model/auth/auth_service.dart';
+import 'package:smart_home/model/rooms/app_state.dart';
 
 class AddUserForm extends StatefulWidget {
   @override
@@ -11,6 +14,8 @@ class _AddUserFormState extends State<AddUserForm> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _temperatureController = TextEditingController();
   final LocalAuthentication _localAuth = LocalAuthentication();
+  AuthService _authService = AuthService();
+  bool isLoading = false;
 
   Future<void> _authenticate() async {
     bool authenticated = false;
@@ -29,12 +34,32 @@ class _AddUserFormState extends State<AddUserForm> {
     if (authenticated) {
       print(
           'User added with username: ${_usernameController.text} and ideal temperature: ${_temperatureController.text}');
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('User Added Successfully')));
-      Navigator.of(context).pop();
     } else {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Authentication failed')));
+    }
+  }
+
+  void _addNewUser() async {
+    if (_addUserFormKey.currentState!.validate()) {
+      await _authenticate();
+      setState(() {
+        isLoading = true;
+      });
+
+      // Appel de la méthode addUser dans ApplicationState
+      ApplicationState appState =
+          Provider.of<ApplicationState>(context, listen: false);
+      await appState.addUser(
+          _usernameController.text, int.parse(_temperatureController.text));
+
+      setState(() {
+        isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('User Added Successfully')));
+      Navigator.of(context).pop();
     }
   }
 
@@ -88,6 +113,12 @@ class _AddUserFormState extends State<AddUserForm> {
                           fontWeight: FontWeight.w300,
                           fontSize: 14),
                       border: InputBorder.none),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a name';
+                    }
+                    return null;
+                  },
                 ),
               ),
             ),
@@ -156,7 +187,7 @@ class _AddUserFormState extends State<AddUserForm> {
                   style: TextStyle(color: Colors.red, fontSize: 15)),
             ),
             ElevatedButton(
-                onPressed: () => _authenticate(),
+                onPressed: isLoading ? null : _addNewUser,
                 style: ElevatedButton.styleFrom(
                     backgroundColor: Color(0xFFFFCA99),
                     shape: RoundedRectangleBorder(
@@ -168,13 +199,15 @@ class _AddUserFormState extends State<AddUserForm> {
                         right: wt * 0.07,
                         top: ht * 0.012,
                         bottom: ht * 0.012),
-                    child: Text(
-                      'Add User',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                          fontSize: 18),
-                    ))),
+                    child: isLoading
+                        ? CircularProgressIndicator()
+                        : Text(
+                            'Add User',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                                fontSize: 18),
+                          ))),
           ],
         ),
       ],

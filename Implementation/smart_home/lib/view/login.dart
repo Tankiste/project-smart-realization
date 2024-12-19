@@ -42,7 +42,8 @@ class _LoginPageState extends State<LoginPage> {
 
       if (resp == 'success') {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomePage()),
+          MaterialPageRoute(
+              builder: (context) => HomePage(username: _nameController.text)),
           (Route<dynamic> route) => false,
         );
       } else if (resp != 'Please Enter All The Fields!') {

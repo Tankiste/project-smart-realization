@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_home/model/add_user.dart';
@@ -8,14 +8,15 @@ import 'package:smart_home/model/rooms/app_state.dart';
 import 'package:smart_home/view/login.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final String? username;
+  const HomePage({super.key, required this.username});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  final AuthService _authService = AuthService();
+  AuthService _authService = AuthService();
   final List<Map<String, dynamic>> _containers = [
     {'icon': Icons.chair_outlined, 'label': 'Living room'},
     {'icon': Icons.kitchen_outlined, 'label': 'Kitchen'},
@@ -40,30 +41,56 @@ class _HomePageState extends State<HomePage> {
 
   bool _switchGarage = false;
 
+  @override
+  void initState() {
+    super.initState();
+    updateData();
+    // Future.microtask(() => initializeData());
+  }
+
+  // Future<void> initializeData() async {
+  //   await updateData();
+  //   await fetchUsers();
+  // }
+
   void _changeRoom(int index) {
     setState(() {
       _selectedRoom = index;
     });
   }
 
-  @override
-  void initState() {
-    updateData();
-    fetchUsers();
-    super.initState();
+  Future<void> updateData() async {
+    try {
+      final appState = Provider.of<ApplicationState>(context, listen: false);
+      await appState.refreshUser();
+      await fetchUsers();
+      print('UpdateData completed');
+    } catch (e) {
+      print('Error in updateData: $e');
+    }
   }
 
-  updateData() async {
-    ApplicationState appState = Provider.of(context, listen: false);
-    await appState.refreshUser();
-  }
+  // Future<void> fetchUsers() async {
+  //   try {
+  //     List<DocumentSnapshot> userDocs = await _authService.getUsers();
+  //     setState(() {
+  //       users = userDocs.map((doc) => UserData.fromSnap(doc)).toList();
+  //     });
+  //     print(users);
+  //   } catch (e) {
+  //     print('Error fetching users: $e');
+  //   }
+  // }
 
   Future<void> fetchUsers() async {
     try {
-      List<DocumentSnapshot> userDocs = await _authService.getUsers();
+      ApplicationState appState =
+          Provider.of<ApplicationState>(context, listen: false);
+      await appState.fetchUsers();
       setState(() {
-        users = userDocs.map((doc) => UserData.fromSnap(doc)).toList();
+        users = appState.getUsers;
       });
+      print(users);
     } catch (e) {
       print('Error fetching users: $e');
     }
@@ -271,8 +298,8 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     var ht = MediaQuery.of(context).size.height;
     var wt = MediaQuery.of(context).size.width;
-    UserData? userData = Provider.of<ApplicationState>(context).getUser;
-    String? name = userData?.name;
+    // final userData = Provider.of<ApplicationState>(context).getUser;
+    // final username = userData?.name ?? 'Guest';
     return Scaffold(
       backgroundColor: Color(0xFFFFF8EC),
       body: SingleChildScrollView(
@@ -290,7 +317,7 @@ class _HomePageState extends State<HomePage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Hi $name!',
+                    'Hi ${widget.username}!',
                     style: TextStyle(fontWeight: FontWeight.w900, fontSize: 30),
                   ),
                   Row(
@@ -495,43 +522,45 @@ class _HomePageState extends State<HomePage> {
                       color: Colors.grey.shade700,
                       height: 20,
                     ),
-                    Container(
-                      height: ht * 0.2,
-                      width: wt * 0.8,
-                      child: users.isEmpty
-                          ? Center(
-                              child: CircularProgressIndicator(),
-                            )
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              padding: EdgeInsets.zero,
-                              itemCount: users.length,
-                              itemBuilder: (context, index) {
-                                final user = users[index];
-                                return Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 10),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceAround,
-                                    children: [
-                                      Text(
-                                        user.name,
-                                        style: TextStyle(
-                                            color: Colors.grey.shade600,
-                                            fontSize: 14),
-                                      ),
-                                      Text(
-                                        '${user.ideal_temperature}°C',
-                                        style: TextStyle(
-                                            color: Colors.grey.shade600,
-                                            fontSize: 14),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }),
-                    )
+                    Consumer<ApplicationState>(builder: (context, appState, _) {
+                      return Container(
+                        height: ht * 0.2,
+                        width: wt * 0.8,
+                        child: appState.getUsers.isEmpty
+                            ? Center(
+                                child: CircularProgressIndicator(),
+                              )
+                            : ListView.builder(
+                                shrinkWrap: true,
+                                physics: NeverScrollableScrollPhysics(),
+                                padding: EdgeInsets.zero,
+                                itemCount: appState.getUsers.length,
+                                itemBuilder: (context, index) {
+                                  final user = appState.getUsers[index];
+                                  return Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 10),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      children: [
+                                        Text(
+                                          user.name,
+                                          style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontSize: 14),
+                                        ),
+                                        Text(
+                                          '${user.ideal_temperature}°C',
+                                          style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontSize: 14),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                      );
+                    })
                   ],
                 ),
               ),

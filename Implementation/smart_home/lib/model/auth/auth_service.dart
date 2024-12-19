@@ -49,10 +49,26 @@ class AuthService {
   }
 
   Future<UserData> getUserDetails() async {
-    auth.User currentUser = _auth.currentUser!;
-    DocumentSnapshot snap =
-        await _firestore.collection('users').doc(currentUser.uid).get();
-    return UserData.fromSnap(snap);
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        throw Exception('No user currently logged in');
+      }
+
+      print('Fetching details for user: ${currentUser.uid}');
+
+      final snap = await _services.users.doc(currentUser.uid).get();
+      if (!snap.exists) {
+        throw Exception('User document not found');
+      }
+
+      print('Document data: ${snap.data()}');
+
+      return UserData.fromSnap(snap);
+    } catch (e) {
+      print('Error in getUserDetails: $e');
+      rethrow;
+    }
   }
 
   Future<String> loginUser({
@@ -78,6 +94,40 @@ class AuthService {
       } else {
         resp = 'Username does not exist';
       }
+    } catch (e) {
+      resp = e.toString();
+    }
+    return resp;
+  }
+
+  Future<String> addUser({
+    required String username,
+    required int idealTemp,
+  }) async {
+    String resp = 'Some error occurred';
+    try {
+      QuerySnapshot userSnapshot = await _services.users.get();
+
+      String homePassword = '';
+      if (userSnapshot.docs.isNotEmpty) {
+        DocumentSnapshot firstUserDoc = userSnapshot.docs.first;
+        homePassword = firstUserDoc['home password'];
+      }
+
+      DocumentReference newUserRef = await _services.users.add({
+        'username': username,
+        'ideal temp.': idealTemp,
+        'fingerprint': signature,
+        'email': '',
+        'actual temp.': 0,
+        'home password': homePassword,
+      });
+
+      await newUserRef.update({
+        'uid': newUserRef.id,
+      });
+
+      resp = 'success';
     } catch (e) {
       resp = e.toString();
     }
